@@ -2,7 +2,7 @@
 FILES = $(shell find src -type f)
 
 install :
-	cabal install --overwrite-policy=always
+	cabal install --enable-executable-dynamic --enable-shared --overwrite-policy=always
 
 agda :
 	cabal install Agda --program-suffix=-erased --overwrite-policy=always
