@@ -33,7 +33,7 @@ import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Records ( isRecordConstructor )
 
 import qualified Agda.Utils.List1 as List1
-import Agda.Utils.Maybe ( isJust, isNothing, whenJust, fromMaybe, caseMaybeM )
+import Agda.Utils.Maybe ( isJust, isNothing, whenJust, fromMaybe, fromMaybeM, caseMaybeM )
 import Agda.Utils.Monad ( whenM )
 
 import Agda2Hs.AgdaUtils
@@ -208,9 +208,7 @@ hsTopLevelModuleName = hsModuleName . intercalate "." . map unpack
 -- compute the associated Haskell module name.
 compileModuleName :: ModuleName -> C (Hs.ModuleName ())
 compileModuleName m = do
-  tlm <- isRewrittenModuleName m >>= \case
-    Just nm -> pure nm
-    Nothing -> liftTCM $ hsTopLevelModuleName <$> getTopLevelModuleForModuleName m
+  tlm <- fromMaybeM(liftTCM $ hsTopLevelModuleName <$> getTopLevelModuleForModuleName m) (isRewrittenModuleName m)
   reportSDoc "agda2hs.name" 25 $
     text "Top-level module name for" <+> prettyTCM m <+>
     text "is" <+> text (pp tlm)
