@@ -88,10 +88,10 @@ defaultModSpecialRules = Map.empty
 
 -- | Check whether the given name should be rewritten to a special Haskell name, possibly with new imports.
 isSpecialName :: QName -> C (Maybe (Hs.Name (), Maybe Import))
-isSpecialName f = asks (Map.lookup (prettyShow f) . rewrites)
+isSpecialName f = asks (Map.lookup (prettyShow f) . rewrites . rules)
 
 isRewrittenModuleName :: ModuleName -> C (Maybe (Hs.ModuleName ()))
-isRewrittenModuleName f = asks (Map.lookup (prettyShow f) . modRewrites)
+isRewrittenModuleName f = asks (Map.lookup (prettyShow f) . modRewrites . rules)
 
 compileName :: Applicative m => Name -> m (Hs.Name ())
 compileName n = hsName . show <$> pretty (nameConcrete n)

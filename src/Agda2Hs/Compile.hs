@@ -32,9 +32,11 @@ import Agda2Hs.Pragma
 import qualified Language.Haskell.Exts.Syntax as Hs
 import qualified Language.Haskell.Exts.Pretty as Hs
 
+optsToRules :: Options -> Rules
+optsToRules opts = Rules(optRewrites opts) (optModRewrites opts)
 
-initCompileEnv :: TopLevelModuleName -> SpecialRules -> ModSpecialRules -> CompileEnv
-initCompileEnv tlm rewrites modRewrites = CompileEnv
+initCompileEnv :: TopLevelModuleName -> Rules -> CompileEnv
+initCompileEnv tlm rules = CompileEnv
   { currModule        = tlm
   , minRecordName     = Nothing
   , isNestedInType    = False
@@ -42,16 +44,15 @@ initCompileEnv tlm rewrites modRewrites = CompileEnv
   , compilingLocal    = False
   , whereModules      = []
   , copatternsEnabled = False
-  , rewrites          = rewrites
-  , modRewrites       = modRewrites
+  , rules             = rules
   , writeImports      = True
   }
 
 initCompileState :: CompileState
 initCompileState = CompileState { lcaseUsed = 0 }
 
-runC :: TopLevelModuleName -> SpecialRules -> ModSpecialRules -> C a -> TCM (a, CompileOutput)
-runC tlm rewrites modRewrites c = evalRWST c (initCompileEnv tlm rewrites modRewrites) initCompileState
+runC :: TopLevelModuleName -> Rules -> C a -> TCM (a, CompileOutput)
+runC tlm rules c = evalRWST c (initCompileEnv tlm rules) initCompileState
 
 moduleSetup :: Options -> IsMain -> TopLevelModuleName -> Maybe FilePath -> TCM (Recompile ModuleEnv ModuleRes)
 moduleSetup _ _ m _ = do
@@ -70,7 +71,7 @@ compile
   -> TCM (CompiledDef, CompileOutput)
 compile opts tlm _ def =
   withCurrentModule (qnameModule qname)
-    $ runC tlm (optRewrites opts) (optModRewrites opts)
+    $ runC tlm (optsToRules opts)
     $ setCurrentRangeQ qname
     $ compileAndTag <* postCompile
   where

@@ -62,6 +62,11 @@ type SpecialRules = Map String (Hs.Name (), Maybe Import)
 -- | A lookup table for module rewrite rules.
 type ModSpecialRules = Map String (Hs.ModuleName ())
 
+data Rules = Rules
+  { rewrites :: SpecialRules
+  , modRewrites :: ModSpecialRules
+  }
+
 data PreludeOptions = PreludeOpts
   { preludeImplicit :: Bool
   , preludeImports  :: Maybe [String]
@@ -102,10 +107,8 @@ data CompileEnv = CompileEnv
   -- ^ the where-blocks currently in scope. Hack until Agda adds where-prominence
   , copatternsEnabled :: Bool
   -- ^ whether copatterns should be allowed when compiling patterns
-  , rewrites :: SpecialRules
+  , rules :: Rules
   -- ^ Special compilation rules.
-  , modRewrites :: ModSpecialRules
-  -- ^ Special module compilation rules.
   , writeImports :: Bool
   -- ^ whether we should add imports of compiled names
   }
