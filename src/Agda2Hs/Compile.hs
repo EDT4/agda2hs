@@ -33,8 +33,8 @@ import qualified Language.Haskell.Exts.Syntax as Hs
 import qualified Language.Haskell.Exts.Pretty as Hs
 
 
-initCompileEnv :: TopLevelModuleName -> SpecialRules -> CompileEnv
-initCompileEnv tlm rewrites = CompileEnv
+initCompileEnv :: TopLevelModuleName -> SpecialRules -> ModSpecialRules -> CompileEnv
+initCompileEnv tlm rewrites modRewrites = CompileEnv
   { currModule        = tlm
   , minRecordName     = Nothing
   , isNestedInType    = False
@@ -43,14 +43,15 @@ initCompileEnv tlm rewrites = CompileEnv
   , whereModules      = []
   , copatternsEnabled = False
   , rewrites          = rewrites
+  , modRewrites       = modRewrites
   , writeImports      = True
   }
 
 initCompileState :: CompileState
 initCompileState = CompileState { lcaseUsed = 0 }
 
-runC :: TopLevelModuleName -> SpecialRules -> C a -> TCM (a, CompileOutput)
-runC tlm rewrites c = evalRWST c (initCompileEnv tlm rewrites) initCompileState
+runC :: TopLevelModuleName -> SpecialRules -> ModSpecialRules -> C a -> TCM (a, CompileOutput)
+runC tlm rewrites modRewrites c = evalRWST c (initCompileEnv tlm rewrites modRewrites) initCompileState
 
 moduleSetup :: Options -> IsMain -> TopLevelModuleName -> Maybe FilePath -> TCM (Recompile ModuleEnv ModuleRes)
 moduleSetup _ _ m _ = do
@@ -69,7 +70,7 @@ compile
   -> TCM (CompiledDef, CompileOutput)
 compile opts tlm _ def =
   withCurrentModule (qnameModule qname)
-    $ runC tlm (optRewrites opts)
+    $ runC tlm (optRewrites opts) (optModRewrites opts)
     $ setCurrentRangeQ qname
     $ compileAndTag <* postCompile
   where

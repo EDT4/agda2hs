@@ -15,6 +15,7 @@ import qualified Data.Yaml as Yaml
 
 import Agda2Hs.Compile.Types
 import Agda2Hs.Compile.Name ( toNameImport )
+import Agda2Hs.HsUtils ( hsModuleName )
 import Agda.TypeChecking.Monad.Base ( TCM, genericDocError )
 import Agda.Syntax.Common.Pretty
 
@@ -22,7 +23,13 @@ import Agda.Syntax.Common.Pretty
 data Config = Config
   { cfgPrelude  :: Maybe PreludeOptions
   , cfgRewrites :: Maybe Rewrites
+  , cfgModRewrites :: Maybe ModRewrites
   }
+
+instance FromJSON ModRewrite where
+  parseJSON = withObject "module rewrite rule" $ \v ->
+    ModRewrite <$> v .:  "from"
+               <*> v .:  "to"
 
 instance FromJSON Rewrite where
   parseJSON = withObject "rewrite rule" $ \v ->
@@ -40,7 +47,8 @@ instance FromJSON Config where
   parseJSON (Aeson.Object v) =
     Config <$> v .:? "prelude"
            <*> v .:? "rewrites"
-  parseJSON Aeson.Null = pure $ Config Nothing Nothing
+           <*> v .:? "module-rewrites"
+  parseJSON Aeson.Null = pure $ Config Nothing Nothing Nothing
   parseJSON invalid =
     Aeson.prependFailure "parsing agda2hs config failed, "
       (Aeson.typeMismatch "Object" invalid)
@@ -58,9 +66,14 @@ applyConfig :: Options -> Config -> Options
 applyConfig opts cfg =
   opts { optPrelude  = fromMaybe (optPrelude opts) (cfgPrelude cfg)
        , optRewrites = foldl addRewrite (optRewrites opts) (fold $ cfgRewrites cfg)
+       , optModRewrites = foldl addModRewrite (optModRewrites opts) (fold $ cfgModRewrites cfg)
        }
   where addRewrite :: SpecialRules -> Rewrite -> SpecialRules
         addRewrite rules (Rewrite from to importing) = Map.insert from (toNameImport to importing) rules
+
+        addModRewrite :: ModSpecialRules -> ModRewrite -> ModSpecialRules
+        addModRewrite rules (ModRewrite from to) = Map.insert from (hsModuleName to) rules
+
 
 checkConfig :: Options -> TCM Options
 checkConfig opts

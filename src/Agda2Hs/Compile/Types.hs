@@ -46,8 +46,21 @@ data Rewrite = Rewrite
 
 type Rewrites = [Rewrite]
 
+-- | Custom substitution for a given module.
+data ModRewrite = ModRewrite
+  { mrewFrom   :: String
+    -- ^ The fully qualified name.
+  , mrewTo     :: String
+    -- ^ The corresponding Haskell name.
+  }
+
+type ModRewrites = [ModRewrite]
+
 -- | A lookup table for rewrite rules.
 type SpecialRules = Map String (Hs.Name (), Maybe Import)
+
+-- | A lookup table for module rewrite rules.
+type ModSpecialRules = Map String (Hs.ModuleName ())
 
 data PreludeOptions = PreludeOpts
   { preludeImplicit :: Bool
@@ -63,6 +76,7 @@ data Options = Options
   , optConfigFile :: Maybe FilePath
   , optExtensions :: [Hs.Extension]
   , optRewrites   :: SpecialRules
+  , optModRewrites :: ModSpecialRules
   , optPrelude    :: PreludeOptions
   }
 
@@ -90,6 +104,8 @@ data CompileEnv = CompileEnv
   -- ^ whether copatterns should be allowed when compiling patterns
   , rewrites :: SpecialRules
   -- ^ Special compilation rules.
+  , modRewrites :: ModSpecialRules
+  -- ^ Special module compilation rules.
   , writeImports :: Bool
   -- ^ whether we should add imports of compiled names
   }

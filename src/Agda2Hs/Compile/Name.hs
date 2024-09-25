@@ -82,9 +82,16 @@ defaultSpecialRules = Map.fromList
         to = (,)
         importing = toNameImport
 
+-- | Default rewrite rules.
+defaultModSpecialRules :: ModSpecialRules
+defaultModSpecialRules = Map.empty
+
 -- | Check whether the given name should be rewritten to a special Haskell name, possibly with new imports.
 isSpecialName :: QName -> C (Maybe (Hs.Name (), Maybe Import))
 isSpecialName f = asks (Map.lookup (prettyShow f) . rewrites)
+
+isRewrittenModuleName :: ModuleName -> C (Maybe (Hs.ModuleName ()))
+isRewrittenModuleName f = asks (Map.lookup (prettyShow f) . modRewrites)
 
 compileName :: Applicative m => Name -> m (Hs.Name ())
 compileName n = hsName . show <$> pretty (nameConcrete n)
@@ -201,7 +208,9 @@ hsTopLevelModuleName = hsModuleName . intercalate "." . map unpack
 -- compute the associated Haskell module name.
 compileModuleName :: ModuleName -> C (Hs.ModuleName ())
 compileModuleName m = do
-  tlm <- liftTCM $ hsTopLevelModuleName <$> getTopLevelModuleForModuleName m
+  tlm <- isRewrittenModuleName m >>= \case
+    Just nm -> pure nm
+    Nothing -> liftTCM $ hsTopLevelModuleName <$> getTopLevelModuleForModuleName m
   reportSDoc "agda2hs.name" 25 $
     text "Top-level module name for" <+> prettyTCM m <+>
     text "is" <+> text (pp tlm)

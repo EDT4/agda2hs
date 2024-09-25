@@ -15,7 +15,7 @@ import qualified Language.Haskell.Exts.Extension as Hs
 import Agda.Main
 import Agda.Compiler.Backend
 
-import Agda2Hs.Compile.Name ( defaultSpecialRules )
+import Agda2Hs.Compile.Name ( defaultSpecialRules , defaultModSpecialRules )
 import Agda2Hs.Compile
 import Agda2Hs.Config ( checkConfig )
 import Agda2Hs.Compile.Types
@@ -34,6 +34,7 @@ defaultOptions = Options
   , optPrelude    = PreludeOpts False Nothing []
     -- by default the Prelude is imported explicitly
   , optRewrites   = defaultSpecialRules
+  , optModRewrites = defaultModSpecialRules
   }
 
 
