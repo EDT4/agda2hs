@@ -33,6 +33,7 @@ import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Records ( isRecordConstructor )
 
 import qualified Agda.Utils.List1 as List1
+import Agda.Utils.Functor ( (<.>) )
 import Agda.Utils.Maybe ( isJust, isNothing, whenJust, fromMaybe, fromMaybeM, caseMaybeM )
 import Agda.Utils.Monad ( whenM )
 
@@ -42,15 +43,8 @@ import Agda2Hs.Compile.Utils
 import Agda2Hs.HsUtils
 
 
-isSpecialCon :: QName -> Maybe (Hs.QName ())
-isSpecialCon = prettyShow >>> \case
-    "Agda.Builtin.List.List"     -> special Hs.ListCon
-    "Agda.Builtin.List.List._∷_" -> special Hs.Cons
-    "Agda.Builtin.List.List.[]"  -> special Hs.ListCon
-    "Agda.Builtin.Unit.⊤"        -> special Hs.UnitCon
-    "Agda.Builtin.Unit.tt"       -> special Hs.UnitCon
-    _ -> Nothing
-  where special c = Just (Hs.Special () $ c ())
+isSpecialCon :: QName -> C (Maybe (Hs.QName ()))
+isSpecialCon nm = asks (Hs.Special () <.> (Map.lookup (prettyShow nm) . conRewrites . rules))
 
 -- | Convert identifier and import module strings into the Haskell equivalent syntax.
 toNameImport :: String -> Maybe String -> (Hs.Name (), Maybe Import)
@@ -86,6 +80,16 @@ defaultSpecialRules = Map.fromList
 defaultModSpecialRules :: ModSpecialRules
 defaultModSpecialRules = Map.empty
 
+-- | Default special constructors.
+defaultSpecialCons :: SpecialCons
+defaultSpecialCons = Map.fromList
+  [ ("Agda.Builtin.List.List"     , Hs.ListCon())
+  , ("Agda.Builtin.List.List._∷_" , Hs.Cons())
+  , ("Agda.Builtin.List.List.[]"  , Hs.ListCon())
+  , ("Agda.Builtin.Unit.⊤"        , Hs.UnitCon())
+  , ("Agda.Builtin.Unit.tt"       , Hs.UnitCon())
+  ]
+
 -- | Check whether the given name should be rewritten to a special Haskell name, possibly with new imports.
 isSpecialName :: QName -> C (Maybe (Hs.Name (), Maybe Import))
 isSpecialName f = asks (Map.lookup (prettyShow f) . rewrites . rules)
@@ -97,14 +101,13 @@ compileName :: Applicative m => Name -> m (Hs.Name ())
 compileName n = hsName . show <$> pretty (nameConcrete n)
 
 compileQName :: QName -> C (Hs.QName ())
-compileQName f
-  | Just c <- isSpecialCon f
-  = do
+compileQName f = isSpecialCon f >>= \case
+  Just c -> do
     reportSDoc "agda2hs.name" 25 $ text $
       "compiling name: " ++ prettyShow f ++
       " to special constructor: " ++ Hs.prettyPrint c
     return c
-  | otherwise = do
+  Nothing -> do
     f <- isRecordConstructor f >>= return . \case
       Just (r, def) | not (_recNamedCon def) -> r -- use record name for unnamed constructors
       _                                      -> f

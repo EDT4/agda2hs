@@ -5,8 +5,9 @@ import Control.Monad ( guard )
 
 import Data.Data ( Data )
 import Data.Generics ( listify, everywhere, mkT, extT )
-import Data.List ( foldl' )
+import Data.List ( foldl', isPrefixOf )
 import Data.Map ( Map )
+import Text.Read ( readMaybe )
 
 import qualified Data.Map as Map
 
@@ -77,6 +78,16 @@ extToName = Ident () . show
 
 hsModuleName :: String -> ModuleName ()
 hsModuleName = ModuleName ()
+
+hsReadSpecialCon :: String -> Maybe(SpecialCon ())
+hsReadSpecialCon "UnitCon"          = Just(UnitCon())
+hsReadSpecialCon "ListCon"          = Just(ListCon())
+hsReadSpecialCon "FunCon"           = Just(FunCon())
+hsReadSpecialCon "Cons"             = Just(Cons())
+hsReadSpecialCon "UnboxedSingleCon" = Just(UnboxedSingleCon())
+hsReadSpecialCon "ExprHole"         = Just(ExprHole())
+hsReadSpecialCon s | "TupleCon" `isPrefixOf` s = TupleCon() Boxed <$> readMaybe(drop 8 s)
+hsReadSpecialCon _ = Nothing
 
 isOp :: QName () -> Bool
 isOp (UnQual _ Symbol{}) = True

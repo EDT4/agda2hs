@@ -15,7 +15,7 @@ import qualified Data.Yaml as Yaml
 
 import Agda2Hs.Compile.Types
 import Agda2Hs.Compile.Name ( toNameImport )
-import Agda2Hs.HsUtils ( hsModuleName )
+import Agda2Hs.HsUtils ( hsModuleName, hsReadSpecialCon )
 import Agda.TypeChecking.Monad.Base ( TCM, genericDocError )
 import Agda.Syntax.Common.Pretty
 
@@ -24,6 +24,7 @@ data Config = Config
   { cfgPrelude  :: Maybe PreludeOptions
   , cfgRewrites :: Maybe Rewrites
   , cfgModRewrites :: Maybe ModRewrites
+  , cfgSpecialCons :: Maybe ModRewrites
   }
 
 instance FromJSON ModRewrite where
@@ -48,7 +49,8 @@ instance FromJSON Config where
     Config <$> v .:? "prelude"
            <*> v .:? "rewrites"
            <*> v .:? "module-rewrites"
-  parseJSON Aeson.Null = pure $ Config Nothing Nothing Nothing
+           <*> v .:? "special-constructors"
+  parseJSON Aeson.Null = pure $ Config Nothing Nothing Nothing Nothing
   parseJSON invalid =
     Aeson.prependFailure "parsing agda2hs config failed, "
       (Aeson.typeMismatch "Object" invalid)
@@ -67,6 +69,7 @@ applyConfig opts cfg =
   opts { optPrelude  = fromMaybe (optPrelude opts) (cfgPrelude cfg)
        , optRewrites = foldl addRewrite (optRewrites opts) (fold $ cfgRewrites cfg)
        , optModRewrites = foldl addModRewrite (optModRewrites opts) (fold $ cfgModRewrites cfg)
+       , optConRewrites = foldl addConRewrite (optConRewrites opts) (fold $ cfgSpecialCons cfg)
        }
   where addRewrite :: SpecialRules -> Rewrite -> SpecialRules
         addRewrite rules (Rewrite from to importing) = Map.insert from (toNameImport to importing) rules
@@ -74,6 +77,10 @@ applyConfig opts cfg =
         addModRewrite :: ModSpecialRules -> ModRewrite -> ModSpecialRules
         addModRewrite rules (ModRewrite from to) = Map.insert from (hsModuleName to) rules
 
+        addConRewrite :: SpecialCons -> ModRewrite -> SpecialCons
+        addConRewrite rules (ModRewrite from to) = case hsReadSpecialCon to of
+          Just e  -> Map.insert from e rules
+          Nothing -> rules
 
 checkConfig :: Options -> TCM Options
 checkConfig opts

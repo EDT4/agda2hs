@@ -62,9 +62,13 @@ type SpecialRules = Map String (Hs.Name (), Maybe Import)
 -- | A lookup table for module rewrite rules.
 type ModSpecialRules = Map String (Hs.ModuleName ())
 
+-- | A lookup table for special constructors.
+type SpecialCons = Map String (Hs.SpecialCon ())
+
 data Rules = Rules
   { rewrites :: SpecialRules
   , modRewrites :: ModSpecialRules
+  , conRewrites :: SpecialCons
   }
 
 data PreludeOptions = PreludeOpts
@@ -82,6 +86,7 @@ data Options = Options
   , optExtensions :: [Hs.Extension]
   , optRewrites   :: SpecialRules
   , optModRewrites :: ModSpecialRules
+  , optConRewrites :: SpecialCons
   , optPrelude    :: PreludeOptions
   }
 

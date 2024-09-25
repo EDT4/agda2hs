@@ -33,7 +33,7 @@ import qualified Language.Haskell.Exts.Syntax as Hs
 import qualified Language.Haskell.Exts.Pretty as Hs
 
 optsToRules :: Options -> Rules
-optsToRules opts = Rules(optRewrites opts) (optModRewrites opts)
+optsToRules opts = Rules(optRewrites opts) (optModRewrites opts) (optConRewrites opts)
 
 initCompileEnv :: TopLevelModuleName -> Rules -> CompileEnv
 initCompileEnv tlm rules = CompileEnv
