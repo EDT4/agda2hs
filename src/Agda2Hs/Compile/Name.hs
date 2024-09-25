@@ -100,6 +100,10 @@ isRewrittenModuleName f = asks (Map.lookup (prettyShow f) . modRewrites . rules)
 compileName :: Applicative m => Name -> m (Hs.Name ())
 compileName n = hsName . show <$> pretty (nameConcrete n)
 
+maybeEither :: Maybe a -> Either () a
+maybeEither(Just x) = Right x
+maybeEither Nothing = Left()
+
 compileQName :: QName -> C (Hs.QName ())
 compileQName f = isSpecialCon f >>= \case
   Just c -> do
@@ -111,10 +115,11 @@ compileQName f = isSpecialCon f >>= \case
     f <- isRecordConstructor f >>= return . \case
       Just (r, def) | not (_recNamedCon def) -> r -- use record name for unnamed constructors
       _                                      -> f
-    hf0 <- compileName (qnameName f)
+    hf0 :: Hs.Name() <- compileName (qnameName f)
     (hf, mimpBuiltin) <- fromMaybe (hf0, Nothing) <$> isSpecialName f
     parent <- parentName f
-    par <- traverse (compileName . qnameName) parent
+    par0 <- traverse (compileName . qnameName) parent
+    par <- maybe par0 (fmap fst) . sequence <$> traverse isSpecialName parent -- sequence is here to get the right order of applications of Maybe, not that it matters currently, but in case one of the maybes change to something else in the future.
     let mod0 = qnameModule $ fromMaybe f parent
     mod <- compileModuleName mod0
     currMod <- hsTopLevelModuleName <$> asks currModule
