@@ -137,7 +137,7 @@ compileQName f = isSpecialCon f >>= \case
       qf = qualify mod' hf qual
 
     -- add (possibly qualified) import
-    whenM (asks writeImports) $
+    whenM ((maybe True (\x -> Hs.prettyPrint(importModule x) /= "") mimpBuiltin &&) <$> asks writeImports) $
       whenJust (mimpBuiltin <|> mimp) tellImport
 
     reportSDoc "agda2hs.name" 25 $ text
